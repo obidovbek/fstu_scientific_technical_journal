@@ -17,7 +17,7 @@ define('MAX_FILE_SIZE', 17 * 1024 * 1024); // 17 MB
 define('ALLOWED_EXTENSIONS', ['doc', 'docx']);
 define('ADMIN_EMAIL', 'stj_admin@fstu.uz'); // Change this to your admin email
 define('SITE_NAME', 'International Technology Journal');
-define('SITE_URL', 'https://publications.fstu.uz/itj');
+define('SITE_URL', 'https://stj.fstu.uz/itj');
 
 // Response function
 function sendResponse($success, $message, $data = []) {

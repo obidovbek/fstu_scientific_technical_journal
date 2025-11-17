@@ -218,13 +218,13 @@ connection_charset = utf8
 ; Complete path to directory to store uploaded files
 ; (This directory should not be directly web-accessible)
 ; Windows users should use forward slashes
-files_dir = /home/web/stj/ojs_files
+files_dir = ojs_files
 
 ; Path to the directory to store public uploaded files
 ; (This directory should be web-accessible and the specified path
 ; should be relative to the base OJS directory)
 ; Windows users should use forward slashes
-public_files_dir = /home/web/stj/ojs_public_files
+public_files_dir = ojs_public_files
 
 ; The maximum allowed size in kilobytes of each user's public files
 ; directory. This is where user's can upload images through the

@@ -26,9 +26,9 @@ $isHTTPS = (
     !empty($_SERVER['HTTP_X_FORWARDED_SSL'])
 );
 
-// Additional safety: if we're on publications.fstu.uz, always force HTTPS
+// Additional safety: if we're on stj.fstu.uz, always force HTTPS
 $host = $_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? '';
-if (strpos($host, 'publications.fstu.uz') !== false) {
+if (strpos($host, 'stj.fstu.uz') !== false) {
     $isHTTPS = true;
 }
 

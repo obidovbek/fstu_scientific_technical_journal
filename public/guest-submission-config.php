@@ -10,7 +10,7 @@ return [
     // Email Configuration
     'admin_email' => 'stj_admin@fstu.uz',
     'site_name' => 'International Technology Journal',
-    'site_url' => 'https://publications.fstu.uz/itj',
+    'site_url' => 'https://stj.fstu.uz/itj',
     'noreply_email' => 'noreply@fstu.uz',
     
     // File Upload Settings

@@ -20,7 +20,7 @@ installed = Off
 ; The canonical URL to the OJS installation
 ; Set via BASE_URL environment variable
 ; Dev: http://localhost:8081
-; Prod: https://publications.fstu.uz
+; Prod: https://stj.fstu.uz
 base_url = "${BASE_URL}"
 base_url[index] = "${BASE_URL}"
 
