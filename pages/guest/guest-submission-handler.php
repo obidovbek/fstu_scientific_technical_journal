@@ -5,6 +5,15 @@
  * to the admin/editor for manual entry into OJS
  */
 
+// Load OJS configuration and bootstrap (PHPMailer is already included)
+if (!defined('INDEX_FILE_LOCATION')) {
+    require_once(__DIR__ . '/../../config.inc.php');
+    require_once(__DIR__ . '/../../lib/pkp/includes/bootstrap.php');
+}
+
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
+
 // Set error reporting for debugging (disable in production)
 error_reporting(E_ALL);
 ini_set('display_errors', 0);
@@ -18,6 +27,81 @@ define('ALLOWED_EXTENSIONS', ['doc', 'docx']);
 define('ADMIN_EMAIL', 'stj_admin@fstu.uz'); // Change this to your admin email
 define('SITE_NAME', 'International Technology Journal');
 define('SITE_URL', 'https://stj.fstu.uz/itj');
+
+// SMTP Configuration - matching working testmail/index.php
+$smtpConfig = [
+    'host' => 'fstu.uz',
+    'port' => 465,
+    'username' => 'stj_info@fstu.uz',
+    'password' => '7san3_9I3'
+];
+
+/**
+ * Send email using PHPMailer with SMTP
+ * Uses the same configuration as testmail/index.php
+ */
+function sendEmailWithSMTP($to, $subject, $htmlBody, $textBody = null, $attachmentPath = null, $attachmentName = null, $replyTo = null) {
+    global $smtpConfig;
+    
+    try {
+        $mail = new PHPMailer(true);
+        
+        // Server settings - matching testmail/index.php exactly
+        $mail->isSMTP();
+        $mail->Host = $smtpConfig['host'];
+        $mail->Port = $smtpConfig['port'];
+        
+        // For port 465, use implicit SSL (matches Node.js secure: true)
+        $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
+        $mail->SMTPAutoTLS = false; // Disable auto TLS for implicit SSL
+        
+        // Authentication
+        $mail->SMTPAuth = true;
+        $mail->Username = $smtpConfig['username'];
+        $mail->Password = $smtpConfig['password'];
+        
+        // Timeout - matching Node.js (10 seconds)
+        $mail->Timeout = 10;
+        
+        // SSL options - matching Node.js tls: { rejectUnauthorized: false }
+        $mail->SMTPOptions = array(
+            'ssl' => array(
+                'verify_peer' => false,
+                'verify_peer_name' => false,
+                'allow_self_signed' => true
+            )
+        );
+        
+        // Sender
+        $mail->setFrom('stj_info@fstu.uz', SITE_NAME);
+        
+        // Reply-To if provided
+        if ($replyTo) {
+            $mail->addReplyTo($replyTo);
+        }
+        
+        // Recipient
+        $mail->addAddress($to);
+        
+        // Content
+        $mail->isHTML(true);
+        $mail->Subject = $subject;
+        $mail->Body = $htmlBody;
+        $mail->AltBody = $textBody ?: strip_tags($htmlBody);
+        
+        // Attachment if provided
+        if ($attachmentPath && $attachmentName && file_exists($attachmentPath)) {
+            $mail->addAttachment($attachmentPath, $attachmentName);
+        }
+        
+        $mail->send();
+        return true;
+        
+    } catch (Exception $e) {
+        error_log('PHPMailer Error: ' . $mail->ErrorInfo);
+        return false;
+    }
+}
 
 // Response function
 function sendResponse($success, $message, $data = []) {
@@ -271,45 +355,29 @@ try {
     </html>
     ";
 
-    // Send emails using PHP mail function
-    // Note: For production, consider using PHPMailer or SMTP for better reliability
+    // Send emails using PHPMailer with SMTP (same configuration as testmail/index.php)
     
-    // Prepare headers for admin email with attachment
-    $boundary = md5(time());
-    
-    $adminHeaders = "From: " . SITE_NAME . " <noreply@fstu.uz>\r\n";
-    $adminHeaders .= "Reply-To: " . $submittingAuthorEmail . "\r\n";
-    $adminHeaders .= "MIME-Version: 1.0\r\n";
-    $adminHeaders .= "Content-Type: multipart/mixed; boundary=\"{$boundary}\"\r\n";
-    
-    // Read file content
-    $fileContent = file_get_contents($fileTmpName);
-    $fileContent = chunk_split(base64_encode($fileContent));
-    
-    // Build multipart email
-    $adminEmailMessage = "--{$boundary}\r\n";
-    $adminEmailMessage .= "Content-Type: text/html; charset=UTF-8\r\n";
-    $adminEmailMessage .= "Content-Transfer-Encoding: 7bit\r\n\r\n";
-    $adminEmailMessage .= $adminEmailBody . "\r\n";
-    
-    $adminEmailMessage .= "--{$boundary}\r\n";
-    $adminEmailMessage .= "Content-Type: application/octet-stream; name=\"{$fileName}\"\r\n";
-    $adminEmailMessage .= "Content-Transfer-Encoding: base64\r\n";
-    $adminEmailMessage .= "Content-Disposition: attachment; filename=\"{$fileName}\"\r\n\r\n";
-    $adminEmailMessage .= $fileContent . "\r\n";
-    $adminEmailMessage .= "--{$boundary}--";
-    
-    // Send admin email
-    $adminEmailSent = mail(ADMIN_EMAIL, $adminEmailSubject, $adminEmailMessage, $adminHeaders);
-    
-    // Prepare headers for author confirmation email
-    $authorHeaders = "From: " . SITE_NAME . " <noreply@fstu.uz>\r\n";
-    $authorHeaders .= "Reply-To: " . ADMIN_EMAIL . "\r\n";
-    $authorHeaders .= "MIME-Version: 1.0\r\n";
-    $authorHeaders .= "Content-Type: text/html; charset=UTF-8\r\n";
+    // Send admin email with attachment
+    $adminEmailSent = sendEmailWithSMTP(
+        ADMIN_EMAIL,
+        $adminEmailSubject,
+        $adminEmailBody,
+        strip_tags($adminEmailBody), // Plain text version
+        $fileTmpName, // Attachment path
+        $fileName, // Attachment name
+        $submittingAuthorEmail // Reply-To: submitting author's email
+    );
     
     // Send author confirmation email
-    $authorEmailSent = mail($submittingAuthorEmail, $authorEmailSubject, $authorEmailBody, $authorHeaders);
+    $authorEmailSent = sendEmailWithSMTP(
+        $submittingAuthorEmail,
+        $authorEmailSubject,
+        $authorEmailBody,
+        strip_tags($authorEmailBody), // Plain text version
+        null, // No attachment
+        null, // No attachment name
+        ADMIN_EMAIL // Reply-To: admin email
+    );
     
     // Check if emails were sent successfully
     if ($adminEmailSent && $authorEmailSent) {

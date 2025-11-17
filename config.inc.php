@@ -302,27 +302,28 @@ allowed_title_html = "b,i,u,sup,sub"
 
 ; Default method to send emails
 ; Available options: sendmail, smtp, log, phpmailer
-default = sendmail
+default = smtp
 
 ; Path to the sendmail, -bs argument is for using SMTP protocol
 sendmail_path = "/usr/sbin/sendmail -bs"
 
 ; Use SMTP for sending mail instead of mail()
-; smtp = On
+smtp = On
 
 ; SMTP server settings
-; smtp_server = mail.example.com
-; smtp_port = 25
+smtp_server = fstu.uz
+smtp_port = 465
 
 ; Enable SMTP authentication
 ; Supported smtp_auth: ssl, tls (see PHPMailer SMTPSecure)
-; smtp_auth = ssl
-; smtp_username = username
-; smtp_password = password
+; Note: Port 465 uses SSL (implicit SMTPS)
+smtp_auth = ssl
+smtp_username = stj_info@fstu.uz 
+smtp_password = 7san3_9I3
 
 ; Enable suppressing SSL/TLS peer verification by SMTP transports
 ; Note: this is not recommended for security reasons
-; smtp_suppress_cert_check = On
+smtp_suppress_cert_check = On
 
 ; Allow envelope sender to be specified
 ; (may not be possible with some server configurations)

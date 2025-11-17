@@ -279,7 +279,9 @@
         const formData = new FormData(form);
 
         try {
-            const response = await fetch('guest-submission-handler.php', {
+            // Use OJS routing URL for the handler
+            const handlerUrl = window.location.pathname.replace(/\/[^\/]*$/, '') + '/submit';
+            const response = await fetch(handlerUrl, {
                 method: 'POST',
                 body: formData
             });
