@@ -19,6 +19,7 @@
     const abstractTextarea = document.getElementById('abstract');
     const wordCountSpan = document.getElementById('wordCount');
     const submitBtn = document.getElementById('submitBtn');
+    const testEmailBtn = document.getElementById('testEmailBtn');
     const successModal = document.getElementById('successModal');
     const errorModal = document.getElementById('errorModal');
     const closeModalBtn = document.getElementById('closeModalBtn');
@@ -50,6 +51,9 @@
 
         // Form Submission
         form.addEventListener('submit', handleSubmit);
+
+        // Test Email Button
+        testEmailBtn.addEventListener('click', handleTestEmail);
 
         // Modal Close
         closeModalBtn.addEventListener('click', closeSuccessModal);
@@ -325,6 +329,61 @@
             btnText.style.display = 'inline';
             btnLoader.style.display = 'none';
             submitBtn.disabled = false;
+        }
+    }
+
+    function setTestEmailLoadingState(loading) {
+        const btnText = testEmailBtn.querySelector('.btn-text');
+        const btnLoader = testEmailBtn.querySelector('.btn-loader');
+
+        if (loading) {
+            btnText.style.display = 'none';
+            btnLoader.style.display = 'flex';
+            testEmailBtn.disabled = true;
+        } else {
+            btnText.style.display = 'inline';
+            btnLoader.style.display = 'none';
+            testEmailBtn.disabled = false;
+        }
+    }
+
+    // Test Email Handler
+    async function handleTestEmail() {
+        // Get email from form or use default
+        const authorEmail = document.getElementById('author_email_0')?.value || 'obidov.bekzod94@gmail.com';
+        
+        setTestEmailLoadingState(true);
+
+        try {
+            // Use OJS routing URL for the test email handler
+            const handlerUrl = window.location.pathname.replace(/\/[^\/]*$/, '') + '/test-email';
+            const response = await fetch(handlerUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    to: authorEmail
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                showSuccessModal();
+                // Update success message
+                const successMessage = successModal.querySelector('p');
+                if (successMessage) {
+                    successMessage.textContent = result.message || 'Test email sent successfully! Check your inbox.';
+                }
+            } else {
+                showError(result.message || 'Failed to send test email. Please try again.');
+            }
+        } catch (error) {
+            console.error('Test email error:', error);
+            showError('Network error. Please check your connection and try again.');
+        } finally {
+            setTestEmailLoadingState(false);
         }
     }
 

@@ -377,7 +377,40 @@ form {
 .form-actions {
     display: flex;
     justify-content: flex-end;
+    gap: 12px;
     margin-top: 40px;
+}
+
+.btn-test-email {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 14px 32px;
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: var(--shadow-md);
+    min-width: 140px;
+}
+
+.btn-test-email:hover:not(:disabled) {
+    background: var(--primary-hover);
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-2px);
+}
+
+.btn-test-email:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.btn-test-email:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
 }
 
 .btn-submit {
@@ -602,8 +635,10 @@ form {
 
     .form-actions {
         justify-content: stretch;
+        flex-direction: column;
     }
 
+    .btn-test-email,
     .btn-submit {
         width: 100%;
     }

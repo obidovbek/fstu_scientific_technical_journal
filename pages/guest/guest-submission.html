@@ -24,7 +24,7 @@
                                 <label for="author_title_0">Title <span class="required">*</span></label>
                                 <select id="author_title_0" name="authors[0][title]" required>
                                     <option value="">Your title</option>
-                                    <option value="Dr.">Dr.</option>
+                                    <option value="Dr." selected>Dr.</option>
                                     <option value="Prof.">Prof.</option>
                                     <option value="Assoc. Prof.">Assoc. Prof.</option>
                                     <option value="Asst. Prof.">Asst. Prof.</option>
@@ -35,20 +35,20 @@
                             </div>
                             <div class="form-group">
                                 <label for="author_name_0">Name <span class="required">*</span></label>
-                                <input type="text" id="author_name_0" name="authors[0][name]" placeholder="First name" required>
+                                <input type="text" id="author_name_0" name="authors[0][name]" placeholder="First name" value="John" required>
                             </div>
                         </div>
 
                         <div class="form-row">
                             <div class="form-group">
                                 <label for="author_surname_0">Surname <span class="required">*</span></label>
-                                <input type="text" id="author_surname_0" name="authors[0][surname]" placeholder="Last name" required>
+                                <input type="text" id="author_surname_0" name="authors[0][surname]" placeholder="Last name" value="Smith" required>
                             </div>
                             <div class="form-group">
                                 <label for="author_authorship_0">Authorship <span class="required">*</span></label>
                                 <select id="author_authorship_0" name="authors[0][authorship]" required>
                                     <option value="">Authorship</option>
-                                    <option value="First Author">First Author</option>
+                                    <option value="First Author" selected>First Author</option>
                                     <option value="Co-Author">Co-Author</option>
                                     <option value="Corresponding Author">Corresponding Author</option>
                                 </select>
@@ -58,18 +58,18 @@
                         <div class="form-row">
                             <div class="form-group">
                                 <label for="author_email_0">Email <span class="required">*</span></label>
-                                <input type="email" id="author_email_0" name="authors[0][email]" placeholder="email@example.com" required>
+                                <input type="email" id="author_email_0" name="authors[0][email]" placeholder="email@example.com" value="john.smith@testuniversity.edu" required>
                             </div>
                             <div class="form-group">
                                 <label for="author_address_0">Address <span class="required">*</span></label>
-                                <input type="text" id="author_address_0" name="authors[0][address]" placeholder="Full address" required>
+                                <input type="text" id="author_address_0" name="authors[0][address]" placeholder="Full address" value="123 University Street, Tashkent, Uzbekistan" required>
                             </div>
                         </div>
 
                         <div class="form-row">
                             <div class="form-group full-width">
                                 <label for="author_affiliation_0">Affiliation <span class="required">*</span></label>
-                                <input type="text" id="author_affiliation_0" name="authors[0][affiliation]" placeholder="University/Institution name" required>
+                                <input type="text" id="author_affiliation_0" name="authors[0][affiliation]" placeholder="University/Institution name" value="Test University, Department of Computer Science" required>
                             </div>
                         </div>
                     </div>
@@ -85,7 +85,7 @@
                     <label for="article_type">Article Type <span class="required">*</span></label>
                     <select id="article_type" name="article_type" required>
                         <option value="">Select article type</option>
-                        <option value="Original article">Original article</option>
+                        <option value="Original article" selected>Original article</option>
                         <option value="Review article">Review article</option>
                         <option value="Case study">Case study</option>
                         <option value="Short communication">Short communication</option>
@@ -95,12 +95,12 @@
 
                 <div class="form-group">
                     <label for="manuscript_title">Manuscript Title <span class="required">*</span></label>
-                    <input type="text" id="manuscript_title" name="manuscript_title" placeholder="Manuscript title" required>
+                    <input type="text" id="manuscript_title" name="manuscript_title" placeholder="Manuscript title" value="Test Submission: Advanced Machine Learning Techniques for Data Analysis" required>
                 </div>
 
                 <div class="form-group">
                     <label for="abstract">Abstract <span class="required">*</span></label>
-                    <textarea id="abstract" name="abstract" rows="8" placeholder="Abstract (max. 350 words)" required></textarea>
+                    <textarea id="abstract" name="abstract" rows="8" placeholder="Abstract (max. 350 words)" required>This study presents a comprehensive analysis of advanced machine learning techniques applied to data analysis problems. The research explores various algorithms including neural networks, support vector machines, and ensemble methods. We conducted extensive experiments on multiple datasets to evaluate the performance of these techniques. Our results demonstrate significant improvements in accuracy and efficiency compared to traditional approaches. The findings contribute to the growing body of knowledge in machine learning and provide practical insights for researchers and practitioners. This work addresses key challenges in data preprocessing, feature selection, and model optimization. The proposed methodology offers a robust framework for handling complex data analysis tasks across different domains.</textarea>
                     <div class="char-counter">
                         <span id="wordCount">0</span> / 350 words
                     </div>
@@ -145,13 +145,23 @@
                 <h2>Keywords</h2>
                 <div class="form-group">
                     <label for="keywords">Keywords <span class="required">*</span></label>
-                    <input type="text" id="keywords" name="keywords" placeholder='Keywords (Use ";" to separate, max. 4-6 words)' required>
+                    <input type="text" id="keywords" name="keywords" placeholder='Keywords (Use ";" to separate, max. 4-6 words)' value="machine learning; artificial intelligence; data analysis; neural networks; deep learning" required>
                     <small class="help-text">Example: machine learning; artificial intelligence; neural networks</small>
                 </div>
             </section>
 
             <!-- Submit Button -->
             <div class="form-actions">
+                <button type="button" class="btn-test-email" id="testEmailBtn">
+                    <span class="btn-text">📧 Test Email</span>
+                    <span class="btn-loader" style="display: none;">
+                        <svg class="spinner" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Testing...
+                    </span>
+                </button>
                 <button type="submit" class="btn-submit" id="submitBtn">
                     <span class="btn-text">Submit</span>
                     <span class="btn-loader" style="display: none;">

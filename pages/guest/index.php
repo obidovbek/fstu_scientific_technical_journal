@@ -40,6 +40,15 @@ switch ($op) {
         }
         // Fall through to 404 if file doesn't exist
         break;
+    case 'test-email':
+        // Direct access to test email handler - bypass OJS routing
+        $testEmailPath = __DIR__ . '/test-email-handler.php';
+        if (file_exists($testEmailPath)) {
+            require_once($testEmailPath);
+            exit;
+        }
+        // Fall through to 404 if file doesn't exist
+        break;
     case 'guest-submission.css':
         // Serve CSS file
         $cssPath = __DIR__ . '/guest-submission.css';
@@ -55,6 +64,14 @@ switch ($op) {
         if (file_exists($jsPath)) {
             header('Content-Type: application/javascript');
             readfile($jsPath);
+            exit;
+        }
+        break;
+    case 'check-logs':
+        // View logs for debugging
+        $logsPath = __DIR__ . '/check-logs.php';
+        if (file_exists($logsPath)) {
+            require_once($logsPath);
             exit;
         }
         break;

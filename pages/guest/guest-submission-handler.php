@@ -28,22 +28,25 @@ define('ADMIN_EMAIL', 'stj_admin@fstu.uz'); // Change this to your admin email
 define('SITE_NAME', 'International Technology Journal');
 define('SITE_URL', 'https://stj.fstu.uz/itj');
 
-// SMTP Configuration - matching working testmail/index.php
-$smtpConfig = [
-    'host' => 'fstu.uz',
-    'port' => 465,
-    'username' => 'stj_info@fstu.uz',
-    'password' => '7san3_9I3'
-];
-
 /**
  * Send email using PHPMailer with SMTP
- * Uses the same configuration as testmail/index.php
+ * Uses the same configuration as testmail/index.php (which works)
  */
 function sendEmailWithSMTP($to, $subject, $htmlBody, $textBody = null, $attachmentPath = null, $attachmentName = null, $replyTo = null) {
-    global $smtpConfig;
+    // SMTP configuration - matching testmail/index.php exactly (local, not global)
+    $smtpConfig = [
+        'host' => 'fstu.uz',
+        'port' => 465,
+        'username' => 'stj_info@fstu.uz',
+        'password' => '7san3_9I3'
+    ];
     
+    // Email options - hardcoded to avoid global variable issues (like testmail/index.php)
+    $fromEmail = 'stj_info@fstu.uz';
+    
+    $mail = null;
     try {
+        // Create PHPMailer instance
         $mail = new PHPMailer(true);
         
         // Server settings - matching testmail/index.php exactly
@@ -60,10 +63,10 @@ function sendEmailWithSMTP($to, $subject, $htmlBody, $textBody = null, $attachme
         $mail->Username = $smtpConfig['username'];
         $mail->Password = $smtpConfig['password'];
         
-        // Timeout - matching Node.js (10 seconds)
+        // Timeout - matching testmail/index.php (10 seconds)
         $mail->Timeout = 10;
         
-        // SSL options - matching Node.js tls: { rejectUnauthorized: false }
+        // SSL options - matching testmail/index.php tls: { rejectUnauthorized: false }
         $mail->SMTPOptions = array(
             'ssl' => array(
                 'verify_peer' => false,
@@ -72,8 +75,8 @@ function sendEmailWithSMTP($to, $subject, $htmlBody, $textBody = null, $attachme
             )
         );
         
-        // Sender
-        $mail->setFrom('stj_info@fstu.uz', SITE_NAME);
+        // Set email details - matching testmail/index.php
+        $mail->setFrom($fromEmail, SITE_NAME);
         
         // Reply-To if provided
         if ($replyTo) {
@@ -90,16 +93,40 @@ function sendEmailWithSMTP($to, $subject, $htmlBody, $textBody = null, $attachme
         $mail->AltBody = $textBody ?: strip_tags($htmlBody);
         
         // Attachment if provided
-        if ($attachmentPath && $attachmentName && file_exists($attachmentPath)) {
-            $mail->addAttachment($attachmentPath, $attachmentName);
+        if ($attachmentPath && $attachmentName) {
+            if (file_exists($attachmentPath)) {
+                // Check file size (some servers have limits)
+                $fileSize = filesize($attachmentPath);
+                if ($fileSize > 0 && $fileSize < 20 * 1024 * 1024) { // Max 20MB
+                    $mail->addAttachment($attachmentPath, $attachmentName);
+                } else {
+                    error_log('Attachment file too large or empty: ' . $attachmentPath . ' (size: ' . $fileSize . ')');
+                }
+            } else {
+                error_log('Attachment file not found: ' . $attachmentPath);
+            }
         }
         
+        // Send email (PHPMailer handles connection internally)
         $mail->send();
-        return true;
+        return ['success' => true, 'message' => 'Email sent successfully'];
         
     } catch (Exception $e) {
-        error_log('PHPMailer Error: ' . $mail->ErrorInfo);
-        return false;
+        $errorMsg = $e->getMessage();
+        $errorInfo = isset($mail) ? $mail->ErrorInfo : 'PHPMailer not initialized';
+        
+        error_log('PHPMailer Error: ' . $errorMsg);
+        error_log('PHPMailer ErrorInfo: ' . $errorInfo);
+        
+        // Also log to a file for debugging
+        $logFile = __DIR__ . '/../../logs/email-errors.log';
+        $logDir = dirname($logFile);
+        if (!is_dir($logDir)) {
+            @mkdir($logDir, 0755, true);
+        }
+        @file_put_contents($logFile, date('Y-m-d H:i:s') . " - To: $to - Error: " . $errorMsg . " | ErrorInfo: " . $errorInfo . "\n", FILE_APPEND);
+        
+        return ['success' => false, 'message' => $errorMsg, 'errorInfo' => $errorInfo];
     }
 }
 
@@ -357,8 +384,12 @@ try {
 
     // Send emails using PHPMailer with SMTP (same configuration as testmail/index.php)
     
+    // Log submission attempt
+    error_log('Attempting to send admin email to: ' . ADMIN_EMAIL);
+    error_log('File attachment: ' . $fileTmpName . ' (exists: ' . (file_exists($fileTmpName) ? 'yes' : 'no') . ')');
+    
     // Send admin email with attachment
-    $adminEmailSent = sendEmailWithSMTP(
+    $adminEmailResult = sendEmailWithSMTP(
         ADMIN_EMAIL,
         $adminEmailSubject,
         $adminEmailBody,
@@ -368,8 +399,32 @@ try {
         $submittingAuthorEmail // Reply-To: submitting author's email
     );
     
+    $adminEmailSent = $adminEmailResult['success'];
+    error_log('Admin email sent (with attachment): ' . ($adminEmailSent ? 'YES' : 'NO'));
+    
+    // If failed with attachment, try without attachment
+    if (!$adminEmailSent && $fileTmpName && file_exists($fileTmpName)) {
+        error_log('Retrying admin email without attachment...');
+        $adminEmailResult = sendEmailWithSMTP(
+            ADMIN_EMAIL,
+            $adminEmailSubject . ' (File attachment failed - see note in email)',
+            $adminEmailBody . '<p><strong>Note:</strong> The manuscript file could not be attached to this email. Please contact the submitter at ' . htmlspecialchars($submittingAuthorEmail) . ' to request the file.</p>',
+            strip_tags($adminEmailBody) . "\n\nNote: The manuscript file could not be attached. Please contact the submitter at " . $submittingAuthorEmail . " to request the file.",
+            null, // No attachment
+            null, // No attachment name
+            $submittingAuthorEmail // Reply-To: submitting author's email
+        );
+        $adminEmailSent = $adminEmailResult['success'];
+        error_log('Admin email sent (without attachment): ' . ($adminEmailSent ? 'YES' : 'NO'));
+    }
+    
+    if (!$adminEmailSent) {
+        error_log('Admin email error: ' . (isset($adminEmailResult['message']) ? $adminEmailResult['message'] : 'Unknown error'));
+    }
+    
     // Send author confirmation email
-    $authorEmailSent = sendEmailWithSMTP(
+    error_log('Attempting to send author email to: ' . $submittingAuthorEmail);
+    $authorEmailResult = sendEmailWithSMTP(
         $submittingAuthorEmail,
         $authorEmailSubject,
         $authorEmailBody,
@@ -379,15 +434,32 @@ try {
         ADMIN_EMAIL // Reply-To: admin email
     );
     
+    $authorEmailSent = $authorEmailResult['success'];
+    error_log('Author email sent: ' . ($authorEmailSent ? 'YES' : 'NO'));
+    if (!$authorEmailSent) {
+        error_log('Author email error: ' . $authorEmailResult['message']);
+    }
+    
     // Check if emails were sent successfully
     if ($adminEmailSent && $authorEmailSent) {
         sendResponse(true, 'Submission successful! A confirmation email has been sent to your email address.');
     } elseif ($adminEmailSent) {
-        sendResponse(true, 'Submission successful! However, we could not send a confirmation email to your address.');
+        // Admin email sent but author email failed
+        $errorMsg = 'Submission received! However, we could not send a confirmation email to your address.';
+        if (isset($authorEmailResult['message'])) {
+            $errorMsg .= ' Error: ' . $authorEmailResult['message'];
+        }
+        sendResponse(true, $errorMsg);
     } else {
-        // Log the error for debugging
+        // Admin email failed - this is critical
+        $errorMsg = 'Failed to send submission emails. ';
+        if (isset($adminEmailResult['message'])) {
+            $errorMsg .= 'Error: ' . $adminEmailResult['message'];
+        } else {
+            $errorMsg .= 'Please try again or contact the administrator.';
+        }
         error_log('Failed to send submission emails for: ' . $manuscriptTitle);
-        sendResponse(false, 'Failed to send submission emails. Please try again or contact the administrator.');
+        sendResponse(false, $errorMsg);
     }
 
 } catch (Exception $e) {
