@@ -28,6 +28,7 @@ class NavigationMenuService extends \PKP\services\PKPNavigationMenuService
     public const NMI_TYPE_MY_SUBSCRIPTIONS = 'NMI_TYPE_MY_SUBSCRIPTIONS';
     public const NMI_TYPE_CURRENT = 'NMI_TYPE_CURRENT';
     public const NMI_TYPE_ARCHIVES = 'NMI_TYPE_ARCHIVES';
+    public const NMI_TYPE_GUEST_SUBMISSION = 'NMI_TYPE_GUEST_SUBMISSION';
 
     /**
      * Initialize hooks for extending PKPNavigationMenuService
@@ -66,6 +67,10 @@ class NavigationMenuService extends \PKP\services\PKPNavigationMenuService
                 'title' => __('user.subscriptions.mySubscriptions'),
                 'description' => __('manager.navigationMenus.mySubscriptions.description'),
                 'conditionalWarning' => __('manager.navigationMenus.mySubscriptions.conditionalWarning'),
+            ],
+            self::NMI_TYPE_GUEST_SUBMISSION => [
+                'title' => 'Submit your article',
+                'description' => 'Guest submission form for authors to submit manuscripts',
             ],
         ];
 
@@ -112,6 +117,10 @@ class NavigationMenuService extends \PKP\services\PKPNavigationMenuService
                     $navigationMenuItem->setIsDisplayed(Validation::isLoggedIn() && $context->getData('paymentsEnabled') && $paymentManager->isConfigured() && $context->getData('publishingMode') == \APP\journal\Journal::PUBLISHING_MODE_SUBSCRIPTION);
                 }
                 break;
+            case self::NMI_TYPE_GUEST_SUBMISSION:
+                // Always display guest submission menu item
+                $navigationMenuItem->setIsDisplayed(true);
+                break;
         }
 
         if ($navigationMenuItem->getIsDisplayed()) {
@@ -157,6 +166,16 @@ class NavigationMenuService extends \PKP\services\PKPNavigationMenuService
                         null
                     ));
                     break;
+                case self::NMI_TYPE_GUEST_SUBMISSION:
+                    $navigationMenuItem->setUrl($dispatcher->url(
+                        $request,
+                        Application::ROUTE_PAGE,
+                        null,
+                        'guest',
+                        'form',
+                        null
+                    ));
+                    break;
             }
         }
     }
@@ -168,6 +187,7 @@ if (!PKP_STRICT_MODE) {
         'NMI_TYPE_MY_SUBSCRIPTIONS',
         'NMI_TYPE_CURRENT',
         'NMI_TYPE_ARCHIVES',
+        'NMI_TYPE_GUEST_SUBMISSION',
     ] as $constantName) {
         define($constantName, constant('\APP\services\NavigationMenuService::' . $constantName));
     }

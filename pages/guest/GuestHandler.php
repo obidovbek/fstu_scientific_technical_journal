@@ -17,18 +17,18 @@
 namespace APP\pages\guest;
 
 use APP\handler\Handler;
+use APP\template\TemplateManager;
 use PKP\core\PKPRequest;
 
 class GuestHandler extends Handler
 {
     /**
-     * @see PKPHandler::validate()
-     * Override to allow access without context
+     * @see PKPHandler::authorize()
      */
-    public function validate($requiredContexts = null, $request = null)
+    public function authorize($request, &$args, $roleAssignments)
     {
-        // Allow access without requiring a journal context
-        // This allows the page to work at site level
+        // No authorization required - public access
+        return parent::authorize($request, $args, $roleAssignments);
     }
 
     /**
@@ -43,63 +43,19 @@ class GuestHandler extends Handler
     }
 
     /**
-     * Display the guest submission form
+     * Display the guest submission form using OJS template system
      *
      * @param array $args
      * @param PKPRequest $request
      */
     public function form($args, $request)
     {
-        // Read and output the HTML form directly
-        $formPath = __DIR__ . '/guest-submission.html';
-        $cssPath = __DIR__ . '/guest-submission.css';
-        $jsPath = __DIR__ . '/guest-submission.js';
+        // Setup template
+        $templateMgr = TemplateManager::getManager($request);
+        $this->setupTemplate($request);
         
-        if (file_exists($formPath)) {
-            // Read the HTML file
-            $html = file_get_contents($formPath);
-            
-            // Get the router to build URLs with journal context
-            $router = $request->getRouter();
-            
-            // Update the form action to point to the correct handler URL
-            // Use OJS URL building to include journal context
-            $handlerUrl = $router->url($request, null, 'guest', 'submit');
-            $html = str_replace(
-                'id="guestSubmissionForm"',
-                'id="guestSubmissionForm" action="' . htmlspecialchars($handlerUrl) . '"',
-                $html
-            );
-            
-            // Embed CSS directly in the HTML
-            if (file_exists($cssPath)) {
-                $cssContent = file_get_contents($cssPath);
-                // Replace the link tag with embedded style tag
-                $html = str_replace(
-                    '<link rel="stylesheet" href="guest-submission.css">',
-                    '<style>' . $cssContent . '</style>',
-                    $html
-                );
-            }
-            
-            // Embed JS directly in the HTML
-            if (file_exists($jsPath)) {
-                $jsContent = file_get_contents($jsPath);
-                // Replace the script tag with embedded script content
-                $html = str_replace(
-                    '<script src="guest-submission.js"></script>',
-                    '<script>' . $jsContent . '</script>',
-                    $html
-                );
-            }
-            
-            echo $html;
-            exit;
-        } else {
-            header('HTTP/1.0 404 Not Found');
-            echo 'Guest submission form not found.';
-            exit;
-        }
+        // Display the guest submission template
+        $templateMgr->display('frontend/pages/guestSubmission.tpl');
     }
 }
 

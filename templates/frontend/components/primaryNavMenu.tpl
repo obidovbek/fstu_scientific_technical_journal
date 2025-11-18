@@ -33,6 +33,12 @@
 		{/if}
 
 		<li>
+			<a href="{url router=\PKP\core\PKPApplication::ROUTE_PAGE page="guest" op="form"}">
+				Submit your article
+			</a>
+		</li>
+
+		<li>
 			<a href="{url router=\PKP\core\PKPApplication::ROUTE_PAGE page="about"}">
 				{translate key="navigation.about"}
 			</a>

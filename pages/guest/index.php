@@ -75,6 +75,22 @@ switch ($op) {
             exit;
         }
         break;
+    case 'clear-cache':
+        // Clear template cache
+        $cachePath = __DIR__ . '/clear-cache.php';
+        if (file_exists($cachePath)) {
+            require_once($cachePath);
+            exit;
+        }
+        break;
+    case 'register-menu-item':
+        // Register guest submission menu item
+        $registerPath = __DIR__ . '/register-menu-item.php';
+        if (file_exists($registerPath)) {
+            require_once($registerPath);
+            exit;
+        }
+        break;
     default:
         define('HANDLER_CLASS', 'APP\pages\guest\GuestHandler');
         break;
