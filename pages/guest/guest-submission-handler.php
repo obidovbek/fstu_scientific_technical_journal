@@ -13,6 +13,7 @@ if (!defined('INDEX_FILE_LOCATION')) {
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
+use APP\guest\GuestSubmission;
 
 // Set error reporting for debugging (disable in production)
 error_reporting(E_ALL);
@@ -242,6 +243,140 @@ try {
         sendResponse(false, implode('; ', $errors));
     }
 
+    // Save uploaded file to permanent location
+    // Try multiple possible locations
+    $possibleDirs = [];
+    
+    // 1. Try OJS config (if available)
+    try {
+        $baseFilesDir = \PKP\config\Config::getVar('files', 'files_dir');
+        if (!empty($baseFilesDir)) {
+            if (!preg_match('/^[\/\\\\]/', $baseFilesDir)) {
+                // Relative path - resolve from OJS root
+                $ojsRoot = dirname(dirname(__DIR__));
+                $possibleDirs[] = $ojsRoot . '/' . $baseFilesDir . '/guest_submissions/';
+            } else {
+                // Absolute path
+                $possibleDirs[] = rtrim($baseFilesDir, '/\\') . '/guest_submissions/';
+            }
+        }
+    } catch (\Exception $e) {
+        error_log('Could not get files_dir from config: ' . $e->getMessage());
+    }
+    
+    // 2. Try common locations
+    $ojsRoot = dirname(dirname(__DIR__));
+    $possibleDirs[] = $ojsRoot . '/files/guest_submissions/';
+    $possibleDirs[] = $ojsRoot . '/ojs_files/guest_submissions/';
+    $possibleDirs[] = '/home/web/stj/frontend2/files/guest_submissions/';
+    $possibleDirs[] = '/home/web/stj/files/guest_submissions/';
+    $possibleDirs[] = __DIR__ . '/../../files/guest_submissions/';
+    
+    // Find first writable directory or create it
+    $uploadDir = null;
+    foreach ($possibleDirs as $dir) {
+        if (is_dir($dir) && is_writable($dir)) {
+            $uploadDir = $dir;
+            error_log('Using existing writable directory: ' . $uploadDir);
+            break;
+        } elseif (is_dir(dirname($dir)) && is_writable(dirname($dir))) {
+            // Parent exists and is writable, try to create subdirectory
+            if (@mkdir($dir, 0755, true)) {
+                $uploadDir = $dir;
+                error_log('Created and using directory: ' . $uploadDir);
+                break;
+            }
+        }
+    }
+    
+    // If no directory found, try to create the first one
+    if (!$uploadDir) {
+        $uploadDir = $possibleDirs[0];
+        error_log('Attempting to create directory: ' . $uploadDir);
+    }
+    
+    // Ensure directory exists
+    if (!is_dir($uploadDir)) {
+        $created = @mkdir($uploadDir, 0755, true);
+        if (!$created) {
+            error_log('Failed to create upload directory: ' . $uploadDir);
+            error_log('Directory exists: ' . (is_dir($uploadDir) ? 'yes' : 'no'));
+            error_log('Is writable: ' . (is_writable(dirname($uploadDir)) ? 'yes' : 'no'));
+            sendResponse(false, 'Failed to create upload directory. Please contact administrator.');
+        }
+    }
+    
+    // Check if directory is writable
+    if (!is_writable($uploadDir)) {
+        error_log('Upload directory is not writable: ' . $uploadDir);
+        error_log('Directory permissions: ' . substr(sprintf('%o', fileperms($uploadDir)), -4));
+        sendResponse(false, 'Upload directory is not writable. Please contact administrator.');
+    }
+    
+    $fileExtension = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+    $newFileName = 'submission_' . time() . '_' . uniqid() . '.' . $fileExtension;
+    $permanentFilePath = $uploadDir . $newFileName;
+    
+    // Log file save attempt
+    error_log('Attempting to save file:');
+    error_log('  Source: ' . $fileTmpName);
+    error_log('  Destination: ' . $permanentFilePath);
+    error_log('  Source exists: ' . (file_exists($fileTmpName) ? 'yes' : 'no'));
+    error_log('  Source readable: ' . (is_readable($fileTmpName) ? 'yes' : 'no'));
+    error_log('  Destination dir writable: ' . (is_writable($uploadDir) ? 'yes' : 'no'));
+    
+    if (!move_uploaded_file($fileTmpName, $permanentFilePath)) {
+        $error = error_get_last();
+        error_log('move_uploaded_file failed');
+        error_log('  Error: ' . ($error ? $error['message'] : 'Unknown error'));
+        error_log('  PHP upload_max_filesize: ' . ini_get('upload_max_filesize'));
+        error_log('  PHP post_max_size: ' . ini_get('post_max_size'));
+        error_log('  File size: ' . $fileSize . ' bytes');
+        
+        // Try alternative: copy instead of move
+        if (file_exists($fileTmpName) && is_readable($fileTmpName)) {
+            error_log('Attempting copy as fallback...');
+            if (@copy($fileTmpName, $permanentFilePath)) {
+                error_log('File copied successfully using copy()');
+                @unlink($fileTmpName); // Clean up temp file
+            } else {
+                $copyError = error_get_last();
+                error_log('copy() also failed: ' . ($copyError ? $copyError['message'] : 'Unknown error'));
+                sendResponse(false, 'Failed to save uploaded file. Error: ' . ($error ? $error['message'] : 'Unknown error'));
+            }
+        } else {
+            sendResponse(false, 'Failed to save uploaded file. Temporary file not accessible.');
+        }
+    } else {
+        error_log('File saved successfully to: ' . $permanentFilePath);
+    }
+    
+    // Verify file was saved
+    if (!file_exists($permanentFilePath)) {
+        error_log('File verification failed - file does not exist after save');
+        sendResponse(false, 'File was not saved correctly. Please try again.');
+    }
+
+    // Save submission to database
+    try {
+        $submissionId = GuestSubmission::create([
+            'context_id' => 1, // Default context, adjust as needed
+            'manuscript_title' => $manuscriptTitle,
+            'article_type' => $articleType,
+            'abstract' => $abstract,
+            'keywords' => $keywords,
+            'manuscript_file_path' => $permanentFilePath,
+            'manuscript_file_name' => $fileName,
+            'authors' => $authors,
+        ]);
+        
+        error_log('Guest submission saved to database with ID: ' . $submissionId);
+    } catch (Exception $e) {
+        error_log('Failed to save submission to database: ' . $e->getMessage());
+        // Continue with email notification even if database save fails
+        $submissionId = null;
+    }
+
     // Prepare email content
     $submittingAuthor = $authors[0];
     $submittingAuthorEmail = $submittingAuthor['email'];
@@ -291,7 +426,7 @@ try {
             <div class='content'>
                 <p style='background: #fef3c7; padding: 15px; border-radius: 5px; border-left: 4px solid #f59e0b;'>
                     <strong>Action Required:</strong> A new manuscript has been submitted via the guest submission form. 
-                    Please log in to OJS and manually enter this submission using the \"Submit on behalf of\" feature.
+                    " . ($submissionId ? "View and manage this submission at: <a href='" . SITE_URL . "/guest/admin/view/{$submissionId}'>Submission #{$submissionId}</a>" : "Please log in to OJS and manually enter this submission using the \"Submit on behalf of\" feature.") . "
                 </p>
                 
                 <div class='section'>

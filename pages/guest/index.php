@@ -22,6 +22,18 @@ switch ($op) {
     case 'form':
         define('HANDLER_CLASS', 'APP\pages\guest\GuestHandler');
         break;
+    case 'admin':
+    case 'admin/index':
+    case 'admin/view':
+    case 'admin/assign':
+    case 'admin/decide':
+    case 'admin/updateStatus':
+    case 'admin/updateNotes':
+    case 'admin/download':
+    case 'admin/delete':
+        // Admin operations
+        define('HANDLER_CLASS', 'APP\pages\guest\GuestAdminHandler');
+        break;
     case 'testmail':
         // Direct access to testmail/index.php - bypass OJS routing
         $testmailPath = __DIR__ . '/testmail/index.php';
@@ -91,8 +103,22 @@ switch ($op) {
             exit;
         }
         break;
+    case 'admin-debug':
+        // Debug page for troubleshooting
+        $debugPath = __DIR__ . '/admin-debug.php';
+        if (file_exists($debugPath)) {
+            require_once($debugPath);
+            exit;
+        }
+        break;
     default:
-        define('HANDLER_CLASS', 'APP\pages\guest\GuestHandler');
+        // Check if the operation or path contains 'admin'
+        // This handles cases where OJS routes /itj/guest/admin differently
+        if (isset($op) && $op === 'admin') {
+            define('HANDLER_CLASS', 'APP\pages\guest\GuestAdminHandler');
+        } else {
+            define('HANDLER_CLASS', 'APP\pages\guest\GuestHandler');
+        }
         break;
 }
 

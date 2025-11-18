@@ -9,8 +9,8 @@
 return [
     // Email Configuration
     'admin_email' => 'stj_admin@fstu.uz',
-    'site_name' => 'International Technology Journal',
-    'site_url' => 'https://stj.fstu.uz/itj',
+    'site_name' => 'Scientific Technical Journal',
+    'site_url' => 'https://stj.fstu.uz',
     'noreply_email' => 'noreply@fstu.uz',
     
     // File Upload Settings
@@ -93,7 +93,7 @@ return [
     
     // Author Email Template Customization
     'author_email_template' => [
-        'subject' => 'Submission Confirmation - International Technology Journal',
+        'subject' => 'Submission Confirmation - Scientific Technical Journal',
         'include_next_steps' => true,
         'estimated_review_time' => '2-4 weeks', // Display in confirmation email
     ]
